@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente Educativo AI (Seguro con Netlify)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* El CSS no necesita cambios */
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #f8f9fa;
+            --background-color: #e9ecef;
+            --text-color: #343a40;
+            --user-msg-bg: #34A853;
+            --ai-msg-bg: #ffffff;
+            --font-family: 'Poppins', sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); background-color: var(--background-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; color: var(--text-color); }
+        .chat-container { width: 90%; max-width: 600px; height: 80vh; max-height: 700px; background-color: var(--secondary-color); border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { background-color: var(--primary-color); color: white; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .chat-header h2 { margin: 0; font-size: 1.4em; }
+        .chat-header p { margin: 5px 0 0; font-size: 0.9em; opacity: 0.9; }
+        .chat-window { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { padding: 12px 18px; border-radius: 20px; max-width: 80%; line-height: 1.5; word-wrap: break-word; animation: fadeIn 0.3s ease-in-out; }
+        .user-message { background-color: var(--user-msg-bg); color: white; align-self: flex-end; border-bottom-right-radius: 5px; }
+        .ai-message { background-color: var(--ai-msg-bg); color: var(--text-color); align-self: flex-start; border-bottom-left-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .typing-indicator { display: flex; align-items: center; gap: 5px; padding: 12px 18px; }
+        .typing-indicator span { width: 8px; height: 8px; background-color: #ccc; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+        .chat-input-area { display: flex; padding: 15px 20px; border-top: 1px solid #ddd; background-color: #fff; }
+        #user-input { flex-grow: 1; border: none; padding: 12px; font-size: 1em; border-radius: 25px; background-color: #f0f2f5; outline: none; margin-right: 10px; font-family: var(--font-family); }
+        #send-btn { background-color: var(--primary-color); border: none; color: white; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s ease; }
+        #send-btn:hover { background-color: #3367D6; }
+        .chat-window::-webkit-scrollbar { width: 8px; }
+        .chat-window::-webkit-scrollbar-thumb { background-color: #c1c1c1; border-radius: 4px; }
+        .chat-window::-webkit-scrollbar-track { background-color: #f1f1f1; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Asistente Educativo AI</h2>
+            <p>Conexión segura vía Netlify</p>
+        </div>
+        <div class="chat-window" id="chat-window"></div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Pregúntame cualquier cosa..." autocomplete="off">
+            <button id="send-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        
+        // La configuración de la API KEY y la URL de Google se han ELIMINADO de aquí.
+        // ¡Ahora el frontend es seguro!
+
+        let conversationHistory = [
+            {
+                role: "user",
+                parts: [{ text: "Eres un asistente educativo amigable y servicial llamado Edubot. Respondes preguntas de manera clara y concisa, enfocado en temas de aprendizaje como ciencia, historia, matemáticas y literatura. Tu lenguaje es positivo y alentador." }],
+            },
+            {
+                role: "model",
+                parts: [{ text: "¡Entendido! Soy Edubot, tu compañero de aprendizaje. Estoy listo para responder tus preguntas de forma clara, concisa y amigable. ¡Pregúntame lo que sea!" }],
+            }
+        ];
+
+        // =====================================================================
+        //     MODIFICACIÓN PRINCIPAL: ESTA FUNCIÓN AHORA LLAMA A NETLIFY
+        // =====================================================================
+        async function getAIResponse(userMessage) {
+            // Añadir el mensaje del usuario al historial local
+            conversationHistory.push({
+                role: "user",
+                parts: [{ text: userMessage }]
+            });
+            
+            try {
+                // Paso 1: Llamar a nuestra propia función de Netlify, no a la API de Google.
+                // Esta URL es un "endpoint" seguro que hemos creado.
+                const response = await fetch('/.netlify/functions/gemini', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    // Paso 2: Enviamos el historial de la conversación a nuestra función
+                    // para que ella pueda usarlo al hablar con Google.
+                    body: JSON.stringify({ conversationHistory: conversationHistory })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Error en la llamada a la función: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                // Paso 3: Procesar la respuesta que nos devuelve nuestra función.
+                if (!data.candidates || data.candidates.length === 0) {
+                     return "Lo siento, no he podido generar una respuesta. Es posible que la pregunta haya activado un filtro de seguridad.";
+                }
+                const aiMessage = data.candidates[0].content.parts[0].text.trim();
+                
+                // Añadir la respuesta de la IA a nuestro historial local para mantener el contexto.
+                conversationHistory.push({
+                    role: "model",
+                    parts: [{ text: aiMessage }]
+                });
+
+                return aiMessage;
+
+            } catch (error) {
+                console.error("Error al contactar con la función de Netlify:", error);
+                return `Lo siento, ha ocurrido un error de conexión. Detalle: ${error.message}`;
+            }
+        }
+
+        function displayMessage(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
+            messageElement.textContent = message;
+            chatWindow.appendChild(messageElement);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function handleSendMessage() {
+            const userMessage = userInput.value.trim();
+            if (userMessage === "") return;
+
+            displayMessage(userMessage, 'user');
+            userInput.value = "";
+            
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            const typingIndicator = document.createElement('div');
+            typingIndicator.classList.add('message', 'ai-message', 'typing-indicator');
+            typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+            chatWindow.appendChild(typingIndicator);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            
+            const aiResponse = await getAIResponse(userMessage);
+            
+            chatWindow.removeChild(typingIndicator);
+            displayMessage(aiResponse, 'ai');
+            
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                handleSendMessage();
+            }
+        });
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const welcomeMessage = "¡Hola! Soy Edubot. Estoy conectado a Google Gemini para ayudarte con tus estudios. ¿Qué quieres aprender hoy?";
+                displayMessage(welcomeMessage, 'ai');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
